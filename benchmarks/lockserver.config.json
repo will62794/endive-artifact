@@ -1,0 +1,18 @@
+{
+    "preds"  :  [
+        "semaphore[s]",
+        "s \\in clientlocks[c]",
+        "clientlocks[c] = {}"
+    ],
+    "preds_alt" : [],
+    "safety"  :  "Inv",
+    "constants"  :  "CONSTANTS\nServer={s1,s2}\nClient={c1,c2}\nNil=Nil\ns1=s1\ns2=s2\nc1=c1\nc2=c2\n",
+    "constraint"  :  "",
+    "quant_inv"  :  "\\A s \\in Server : \\A c \\in Client : ",
+    "quant_inv_alt"  :  null,
+    "quant_vars": [],
+    "model_consts"  :  "CONSTANT s1,s2,c1,c2",
+    "symmetry" : false,
+    "typeok"  :  "TypeOK",
+    "simulate"  :  false      
+}

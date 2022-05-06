@@ -1,0 +1,32 @@
+{
+    "preds"  :  [
+        "tmState = \"init\"",
+        "[type |-> \"Prepared\", rm |-> rmi] \\in msgs",
+        "[type |-> \"Prepared\", rm |-> rmj] \\in msgs",
+        "tmPrepared = RM",
+        "rmState[rmi] = \"working\"",
+        "rmState[rmi] = \"working\"",
+        "rmState[rmj] = \"working\"",
+        "rmState[rmj] = \"working\"",
+        "[type |-> \"Commit\"] \\in msgs",
+        "[type |-> \"Abort\"] \\in msgs",
+        "rmState[rmi] = \"prepared\"",
+        "rmState[rmi] = \"aborted\"",
+        "rmState[rmi] = \"committed\"",
+        "rmState[rmj] = \"prepared\"",
+        "rmState[rmj] = \"aborted\"",
+        "rmState[rmj] = \"committed\"",
+        "tmPrepared = tmPrepared \\cup {rmi}"
+    ],
+    "preds_alt" : [],
+    "safety"  :  "TCConsistent",
+    "constants"  :  "CONSTANTS\nRM={rm1,rm2,rm3}\nrm1 = rm1\nrm2 = rm2\nrm3=rm3\n",
+    "constraint"  :  "",
+    "quant_inv"  :  "\\A rmi \\in RM : \\A rmj \\in RM : ",
+    "quant_inv_alt"  :  null,
+    "quant_vars": [],
+    "model_consts"  :  "CONSTANT rm1,rm2,rm3",
+    "symmetry" : true,
+    "typeok"  :  "TypeOK",
+    "simulate"  :  true      
+}

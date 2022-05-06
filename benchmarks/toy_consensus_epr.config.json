@@ -1,0 +1,29 @@
+{
+    "preds"  :  [
+        "s \\in voted",
+        "t \\in voted",
+        "<<s,va>> \\in vote",
+        "<<s,vb>> \\in vote",
+        "<<t,va>> \\in vote",
+        "<<t,vb>> \\in vote",
+        "(va = vb) /\\ vote = vote",
+        "va \\in decided",
+        "vb \\in decided",
+        "voted = {}",
+        "decided = {}",
+        "ChosenAt(Q, va)",
+        "ChosenAt(Q, vb)",
+        "(s = t) /\\ vote = vote"
+    ],
+    "preds_alt" : [],
+    "safety"  :  "Safety",
+    "constants"  :  "CONSTANTS\nNode={n1,n2,n3}\nQuorum = {{n1,n2},{n1,n3},{n2,n3}}\nValue={v1,v2}\nNil=Nil\nn1=n1\nn2=n2\nn3=n3\nv1=v1\nv2=v2\n",
+    "constraint"  :  "",
+    "quant_inv"  :  "\\A s,t \\in Node : \\E Q \\in Quorum : \\A va,vb \\in Value : ",
+    "quant_inv_alt"  :  null,
+    "quant_vars": [],
+    "model_consts"  :  "CONSTANT n1,n2,n3,v1,v2",
+    "symmetry" : true,
+    "typeok"  :  "TypeOK",
+    "simulate"  :  false      
+}

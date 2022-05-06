@@ -1,0 +1,25 @@
+{
+    "preds"  :  [
+        "pc[s] = \"a\"",
+        "pc[s] = \"b\"",
+        "pc[s] = \"Done\"",
+        "pc[t] = \"a\"",
+        "pc[t] = \"b\"",
+        "pc[t] = \"Done\"",
+        "x[s] = 0",
+        "y[s] = 0",
+        "x[s] = y[s]",
+        "x[s] = y[t]"
+    ],
+    "preds_alt" : [],
+    "safety"  :  "PCorrect",
+    "constants"  :  "CONSTANTS\nN=4\n",
+    "constraint"  :  "",
+    "quant_inv"  :  "\\A s,t \\in ProcSet : ",
+    "quant_inv_alt"  :  null,
+    "quant_vars": [],
+    "model_consts"  :  "",
+    "symmetry" : false,
+    "typeok"  :  "TypeOK",
+    "simulate"  :  false      
+}

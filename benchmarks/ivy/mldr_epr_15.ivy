@@ -1,0 +1,176 @@
+#lang ivy1.5
+
+type server
+type conf
+type quorum
+
+relation qmember(S:server, Q:quorum) # is S a member of the quorum Q?
+relation cmember(S:server, C:conf) # is S a member of the config C?
+relation quorumof(Q:quorum, C:conf) # is Q a quorum of C?  i.e. it must be a subset with a majority of C's elements
+
+relation empty(C:conf) = forall X:server. ~cmember(X,C)
+
+# quorum overlap relation for two configs
+relation quorums_overlap(C1:conf, C2:conf) =
+  forall Q1:quorum, Q2:quorum. exists X:server.
+    (quorumof(Q1,C1) & quorumof(Q2,C2)) -> (qmember(X,Q1) & qmember(X,Q2))
+
+# static quorum def: all quorums of a single config must overlap
+axiom forall C:conf. forall Q1:quorum, Q2:quorum.
+  (quorumof(Q1,C) & quorumof(Q2,C)) -> (exists X:server. qmember(X,Q1) & qmember(X,Q2))
+
+# quorums are subsets of configs
+axiom forall C:conf. forall Q:quorum. forall X:server.
+  (quorumof(Q,C) & qmember(X,Q)) -> cmember(X,C)
+
+# nonempty configs have at least one quorum
+axiom forall C:conf. ~empty(C) <-> (exists Q:quorum. quorumof(Q,C))
+
+# quorums are nonempty
+axiom forall Q:quorum. exists X:server. qmember(X,Q)
+
+# there is at least one nonempty config
+axiom exists C:conf. ~empty(C)
+
+# a few sanity checks
+#property forall C:conf. forall Q:quorum. empty(C) -> ~quorumof(Q,C)
+#property quorums_overlap(Q, Q)
+
+
+
+
+type state_set # primary / secondary
+type nat
+
+# might be able to just define state_set explicitly instead
+individual primary : state_set
+individual secondary : state_set
+
+axiom primary ~= secondary
+axiom forall X:state_set. X = primary | X = secondary
+
+individual zero : nat
+relation lt(X:nat, Y:nat)
+axiom zero = X:nat | lt(zero, X)
+axiom lt(X:nat, Y) & lt(Y, Z) -> lt(X, Z)
+axiom ~(lt(X:nat, Y) & lt(Y, X))
+axiom lt(X:nat, Y) | X = Y | lt(Y, X)
+
+relation succ(I:nat, J:nat) = forall K : nat. (lt(I, J) & (lt(K, I) | lt(J, K) | K = I | K = J))
+
+individual one : nat
+axiom succ(zero, one)
+
+
+# state variable equivalent
+function current_term(S:server): nat
+function state(S:server) : state_set
+function config_version(S:server) : nat
+function config_term(S:server) : nat
+function config(S:server) : conf
+
+
+relation newer_config(S:server, T:server) = lt(config_term(T), config_term(S)) | config_term(T) = config_term(S) & lt(config_version(T), config_version(S))
+relation older_config(S:server, T:server) = newer_config(T,S)
+relation newer_or_equal_config(S:server, T:server) = newer_config(S,T) | config_term(S) = config_term(T) & config_version(S) = config_version(T)
+relation config_disabled(S:server) = forall Q:quorum. quorumof(Q,config(S)) -> exists T:server. qmember(T,Q) & newer_config(T,S)
+relation active_config(S:server) = ~config_disabled(S)
+
+
+init current_term(S) := zero
+init state(S) := secondary;
+init config_version(S) := zero
+init config_term(S) := zero
+init assume config(S) = config(T)
+
+action reconfig = {
+  local s:server, c:conf, v:nat {
+	  assume succ(config_version(s), v);
+	  assume state(s) = primary;
+	  assume exists Q:quorum. # config quorum check
+	    quorumof(Q,config(s)) &
+	    forall T:server.
+	      qmember(T,Q) -> config_term(s) = config_term(T) & config_version(s) = config_version(T);
+	  assume exists Q:quorum.  # term quorum check
+	    quorumof(Q,config(s)) &
+	    forall T:server.
+	      qmember(T,Q) -> current_term(s) = current_term(T);
+	  assume quorums_overlap(config(s), c);
+	  assume cmember(s, c);
+	  
+	  config_term(s) := current_term(s);
+	  config_version(s) := v;
+	  config(s) := c;
+  }
+}
+
+action sendConfig = {
+  local s:server, t:server {
+	  assume state(t) = secondary;
+	  assume newer_config(s,t);
+	  config_version(t) := config_version(s);
+	  config_term(t) := config_term(s);
+	  config(t) := config(s);
+  }
+}
+
+action becomeLeader = {
+  local s:server, q:quorum, t:nat {
+	  assume quorumof(q, config(s));
+	  assume succ(current_term(s), t);
+	  assume cmember(s, config(s));
+	  assume qmember(s, q);
+	  assume qmember(X, q) -> lt(current_term(X), t);
+	  assume qmember(X, q) -> newer_or_equal_config(s, X);
+
+	  current_term(S) := t if qmember(S,q) else current_term(S);
+	  state(S) := primary if S = s else (secondary if qmember(S,q) else state(S));
+	  config_term(s) := t;
+  }
+}
+
+action updateTerms = {
+  local s:server, t:server {
+	  assume lt(current_term(s), current_term(t));
+
+	  current_term(s) := current_term(t);
+	  state(s) := secondary;
+  }
+}
+
+export reconfig
+export sendConfig
+export becomeLeader
+export updateTerms
+
+
+# OnePrimaryPerTerm / election safety
+conjecture state(S1) = primary & state(S2) = primary & current_term(S1) = current_term(S2) -> S1 = S2
+
+# PrimaryConfigTermEqualToCurrentTerm
+#invariant state(S) = primary -> config_term(S) = current_term(S)
+
+# ConfigVersionAndTermUnique
+#invariant config_term(S) = config_term(T) & config_version(S) = config_version(T) -> config(S) = config(T)
+
+# PrimaryInTermContainsNewestConfigOfTerm
+#invariant state(P) = primary & config_term(S) = config_term(P) -> (config_version(S) = config_version(P) | lt(config_version(S), config_version(P)))
+
+# ActiveConfigsOverlap
+#invariant active_config(S) & active_config(T) -> quorums_overlap(config(S), config(T))
+
+# ActiveConfigsSafeAtTerms
+#invariant forall S, T : server. active_config(T) ->
+  #forall Q:quorum. quorumof(Q,config(T)) ->
+    #exists N:server. qmember(N,Q) & (config_term(S) = current_term(N) | lt(config_term(S), current_term(N)))
+
+
+
+# false invariants
+#invariant current_term(S) = zero
+#invariant config_term(S) = zero
+#invariant config_version(S) = zero
+#invariant config(S) = config(T)
+#invariant (forall S1 . (one = config_version(S1)))
+#invariant false
+
